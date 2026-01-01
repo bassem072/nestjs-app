@@ -1,8 +1,8 @@
 import { Exclude } from 'class-transformer';
-import { Product } from 'src/products/product.entity';
-import { Review } from 'src/reviews/review.entity';
-import { CURRENT_TIMESTAMP } from 'src/utils/constants';
-import { UserType } from 'src/utils/enums';
+import { Product } from '../products/product.entity';
+import { Review } from '../reviews/review.entity';
+import { CURRENT_TIMESTAMP } from '../utils/constants';
+import { UserType } from '../utils/enums';
 import {
   Column,
   CreateDateColumn,
@@ -35,6 +35,12 @@ export class User {
   @Column('boolean', { default: false })
   isAccountVerified: boolean;
 
+  @Column('varchar', { nullable: true })
+  verificationToken: string | null;
+
+  @Column('varchar', { nullable: true })
+  resetPasswordToken: string | null;
+
   @CreateDateColumn({
     type: 'timestamp',
     default: () => CURRENT_TIMESTAMP,
@@ -47,6 +53,9 @@ export class User {
     onUpdate: CURRENT_TIMESTAMP,
   })
   updatedAt: Date;
+
+  @Column('varchar', { nullable: true, default: null })
+  profileImage: string | null;
 
   @OneToMany(() => Product, (product) => product.user)
   products: Product[];

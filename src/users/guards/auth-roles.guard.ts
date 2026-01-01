@@ -9,9 +9,9 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
-import type { UserType } from 'src/utils/enums';
-import type { JWTPayloadType } from 'src/utils/types';
-import { CURRENT_USER_KEY } from 'src/utils/constants';
+import type { UserType } from '../../utils/enums';
+import type { JWTPayloadType } from '../../utils/types';
+import { CURRENT_USER_KEY } from '../../utils/constants';
 import { UsersService } from '../users.service';
 
 @Injectable()

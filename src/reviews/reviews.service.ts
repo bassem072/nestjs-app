@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Review } from './review.entity';
-import { UsersService } from 'src/users/users.service';
-import { ProductsService } from 'src/products/products.service';
+import { UsersService } from '../users/users.service';
+import { ProductsService } from '../products/products.service';
 import { CreateReviewDto } from './dtos/create-review.dto';
 import { Repository } from 'typeorm';
 import { UpdateReviewDto } from './dtos/update-review.dto';

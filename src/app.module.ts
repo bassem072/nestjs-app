@@ -1,38 +1,41 @@
-import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import { LoggerMiddleware } from './utils/middlewares/logger.middleware';
+import {
+  ClassSerializerInterceptor,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ProductsModule } from './products/products.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Product } from './products/product.entity';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Review } from './reviews/review.entity';
-import { User } from './users/user.entity';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { UploadsModule } from './uploads/uploads.module';
+import { MailModule } from './mail/mail.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { dataSourceOption } from '../db/data-source';
 
 @Module({
   imports: [
     ProductsModule,
     ReviewsModule,
     UsersModule,
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        return {
-          type: 'postgres',
-          database: config.get<string>('DB_NAME'),
-          username: config.get<string>('DB_USERNAME'),
-          password: config.get<string>('DB_PASSWORD'),
-          port: config.get<number>('DB_PORT'),
-          host: 'localhost',
-          synchronize: true, // This for development
-          entities: [Product, Review, User],
-        };
-      },
-    }),
+    UploadsModule,
+    MailModule,
+    TypeOrmModule.forRoot(dataSourceOption),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV}`,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 3,
+      },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -40,7 +43,43 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
       provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    },
   ],
   exports: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .exclude({ path: '/api/products', method: RequestMethod.GET })
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
+
+// LOCAL DATABASE
+//
+// {
+//   inject: [ConfigService],
+//   useFactory: (config: ConfigService) => {
+//     return {
+//       type: 'postgres',
+//       database: config.get<string>('DB_NAME'),
+//       username: config.get<string>('DB_USERNAME'),
+//       password: config.get<string>('DB_PASSWORD'),
+//       port: config.get<number>('DB_PORT'),
+//       host: 'localhost',
+//       synchronize: true, // This for development
+//       entities: [Product, Review, User],
+//     };
+//   },
+// }

@@ -7,19 +7,20 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
-import { JwtService } from '@nestjs/jwt';
-import { AccessTokenType, JWTPayloadType } from 'src/utils/types';
+import { JWTPayloadType } from '../utils/types';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { UserType } from 'src/utils/enums';
+import { UserType } from '../utils/enums';
 import { AuthProvider } from './auth.provider';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
+import { join } from 'path';
+import { existsSync, unlinkSync } from 'fs';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
     private readonly authProvider: AuthProvider,
   ) {}
 
@@ -28,7 +29,7 @@ export class UsersService {
    * @param registerDto data for creating new user
    * @returns JWT (access token)
    */
-  public async register(registerDto: RegisterDto): Promise<AccessTokenType> {
+  public async register(registerDto: RegisterDto) {
     return this.authProvider.register(registerDto);
   }
 
@@ -37,7 +38,7 @@ export class UsersService {
    * @param loginDto data for login user
    * @returns JWT (access token)
    */
-  public async login(loginDto: LoginDto): Promise<AccessTokenType> {
+  public async login(loginDto: LoginDto) {
     return this.authProvider.login(loginDto);
   }
 
@@ -98,5 +99,67 @@ export class UsersService {
     await this.userRepository.remove(user);
 
     return { message: 'User has been deleted' };
+  }
+
+  public async setProfileImage(userId: number, newImageProfile: string) {
+    const user = await this.getUser(userId);
+
+    user.profileImage = newImageProfile;
+
+    return await this.userRepository.save(user);
+  }
+
+  public async deleteProfileImage(userId: number) {
+    const user = await this.getUser(userId);
+
+    if (!user.profileImage) {
+      throw new NotFoundException('There is no profile photo');
+    }
+
+    const imagePath = join(process.cwd(), `images/users/${user.profileImage}`);
+
+    if (existsSync(imagePath)) {
+      unlinkSync(imagePath);
+    }
+
+    user.profileImage = null;
+
+    return await this.userRepository.save(user);
+  }
+
+  public async verifyEmail(userId: number, verificationToken: string) {
+    const user = await this.getUser(userId);
+
+    if (!user.verificationToken) {
+      throw new NotFoundException('There is no verification token');
+    }
+
+    if (user.verificationToken !== verificationToken) {
+      throw new BadRequestException('Invalid link');
+    }
+
+    user.isAccountVerified = true;
+    user.verificationToken = null;
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Your email has been verified, please login to your account',
+    };
+  }
+
+  public async sendResetPassword(email: string) {
+    return this.authProvider.sendResetPassword(email);
+  }
+
+  public async getResetPasswordLink(
+    userId: number,
+    resetPasswordToken: string,
+  ) {
+    return this.authProvider.getResetPasswordLink(userId, resetPasswordToken);
+  }
+
+  public async resetPassword(dto: ResetPasswordDto) {
+    return this.authProvider.resetPassword(dto);
   }
 }

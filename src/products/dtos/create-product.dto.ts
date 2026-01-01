@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsString, Min, MinLength } from 'class-validator';
 
 export class CreateProductDto {
@@ -6,16 +7,19 @@ export class CreateProductDto {
   @MinLength(3, {
     message: 'Title should be with length grater than 2 characters',
   })
+  @ApiProperty()
   title: string;
 
   @IsString({ message: 'Description should be string' })
   @MinLength(5, {
     message: 'Description should be with length grater than 4 characters',
   })
+  @ApiProperty()
   description: string;
 
   @IsNotEmpty({ message: 'Price should be not empty' })
   @IsInt({ message: 'Price should be Integer' })
   @Min(0, { message: 'Price should be not less than 0' })
+  @ApiProperty()
   price: number;
 }
