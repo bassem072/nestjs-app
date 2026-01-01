@@ -28,7 +28,10 @@ import { dataSourceOption } from '../db/data-source';
     TypeOrmModule.forRoot(dataSourceOption),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV}`,
+      envFilePath:
+        process.env.NODE_ENV !== 'production'
+          ? `.env.${process.env.NODE_ENV}`
+          : '.env',
     }),
     ThrottlerModule.forRoot([
       {
